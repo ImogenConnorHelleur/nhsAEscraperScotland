@@ -1,4 +1,4 @@
-Package: nhsAEscraper
+Package: nhsAEscraperScotland
 Type: Package
 Title: Download and collate Accident and Emergency data from NHS England's website
 Version: 0.0.0.9002
