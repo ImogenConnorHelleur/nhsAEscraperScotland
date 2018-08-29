@@ -38,7 +38,7 @@ getAE_data <- function(update_data = TRUE, directory = file.path('data-raw','sit
   
 }
 
-
+###actually gives weekly data -> this wil be sorted out in the app itself 
 #' getAEdata_urls_monthly
 #'
 #' @param url_list list of urls (as strings) for the pages to scrape for data files
@@ -61,8 +61,7 @@ getAEdata_urls_monthly <- function(url_list = NULL) {
   
   #Scotish data : each csv file contains previous data already so only need most recent file 
   url_vect <- unlist(lapply(url_list,function(x) getAEdata_page_urls_monthly(x)))
-  url_vect[1]
-  
+  url_vect
 }
 
 
@@ -86,21 +85,31 @@ getAEdata_page_urls_monthly <- function(index_url) {
   con <- url(index_url, "r")
   html_lines <- readLines(con)
   
+  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-NHSBoard-Data.csv
+  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-NHSScotland-Data.csv
+  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-Statistics.xlsx?15:15:35
   #Close connection
   close(con)
 
-  xlsdata_url_lines <- grep("ED-Weekly-Hospital-Data",html_lines)
-  NHSE_xlsdata_lines <- html_lines[xlsdata_url_lines]
+  hosp_data_url_lines <- grep("ED-Weekly-Hospital-Data",html_lines)
+  board_data_url_lines <- grep("ED-Weekly-NHSBoard-Data",html_lines)
+  scot_data_url_lines <- grep("ED-Weekly-NHSScotland-Data",html_lines)
+  NHSS_csvdata_lines_hosp <- html_lines[hosp_data_url_lines]
+  NHSS_csvdata_lines_board <- html_lines[board_data_url_lines]
+  NHSS_csvdata_lines_scot <- html_lines[scot_data_url_lines]
   
   #Extract urls from html lines
-  starts <- regexpr("http",NHSE_xlsdata_lines)
-  ends <- regexpr(".csv",NHSE_xlsdata_lines) + 3
-  urls <- substr(NHSE_xlsdata_lines, starts, ends)
+  #starts <- regexpr("http",NHSS_csvdata_lines)
+  #ends <- regexpr(".csv",NHSS_csvdata_lines) + 3
+  urls_hosp <- substr(NHSS_csvdata_lines_hosp, regexpr("http",NHSS_csvdata_lines_hosp), regexpr(".csv",NHSS_csvdata_lines_hosp) + 3)
+  urls_board <- substr(NHSS_csvdata_lines_board, regexpr("http",NHSS_csvdata_lines_board), regexpr(".csv",NHSS_csvdata_lines_board) + 3)
+  urls_scot <- substr(NHSS_csvdata_lines_scot, regexpr("http",NHSS_csvdata_lines_scot), regexpr(".csv",NHSS_csvdata_lines_scot) + 3)
+
+  urls <- c(urls_hosp[1], urls_board[1], urls_scot[1])
   
   #Return urls
   return(urls)
-  
-  
+
 }
 
 
@@ -149,19 +158,18 @@ download_AE_files <- function(file_urls, directory) {
 load_AE_files <- function(directory = file.path('data-raw','sitreps'), use_filename_date = TRUE) {
   
   #fileNames <- Sys.glob(file.path(directory,'*AE-by-provider*.xls'))
-  fileNames <- Sys.glob(file.path(directory,'*ED-Weekly-Hospital-Data*.csv'))
+  fileNames <- Sys.glob(file.path(directory,'*-Data*.csv'))
   dataList <- NULL
   dataList <- lapply(fileNames, function(x) {
     cat(file=stderr(), "Loading: ", x, "\n")
-    #df <- readxl::read_excel(x, sheet = 1, col_names = FALSE)
     df <- utils::read.csv(x)
     cat(file=stderr(), "Success loaded: ", x, "\n")
-    if(use_filename_date) {
-      dt_chr <- stringr::str_replace(
-        stringr::str_match(x, '/(([0-9A-Za-z]|-)*)-ED-Weekly-Hospital-Data')[,2], '-', ' '
-      )
-      df <- df %>% dplyr::mutate(X__2 = ifelse(X__1 == 'Period:', dt_chr, X__2))
-    }
+    #if(use_filename_date) {
+    #  dt_chr <- stringr::str_replace(
+    #    stringr::str_match(x, '/(([0-9A-Za-z]|-)*)-ED-Weekly-Hospital-Data')[,2], '-', ' '
+    #  )
+    #  df <- df %>% dplyr::mutate(X__2 = ifelse(X__1 == 'Period:', dt_chr, X__2))
+    #}
     df
   })
   dataList
@@ -223,8 +231,13 @@ clean_AE_data <- function(raw_data) {
   #                                            Perf_12hr == '-' ~ NA_character_,
   #                                            Perf_12hr != 'N/A' ~ Perf_12hr))
   
-  clean_data <- clean_data %>% dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Att_")), dplyr::funs(as.numeric)) %>%
-    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Perf_")), dplyr::funs(as.numeric))
+  clean_data <- clean_data %>% 
+    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Att_")), dplyr::funs(as.numeric)) %>%
+    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Perf_")), dplyr::funs(as.numeric)) %>%
+    dplyr::mutate(Week_End = as.Date(Week_End)) %>%
+    dplyr::mutate(Board_Code = as.character(Board_Code)) %>%
+    dplyr::mutate(Board_Name = as.character(Board_Name)) %>%
+    dplyr::mutate(Prov_Name = as.character(Prov_Name))
 
   
   clean_data
