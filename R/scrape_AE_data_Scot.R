@@ -209,7 +209,7 @@ clean_AE_data <- function(raw_data) {
                   Perf_4hr = X__8,
                   Att_8hr_Br = X__9,
                   Perf_8hr = X__10,
-                  Att_12hr_br = X__11,
+                  Att_12hr_Br = X__11,
                   Perf_12hr = X__12
                   )
   
