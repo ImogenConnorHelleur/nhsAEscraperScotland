@@ -85,9 +85,6 @@ getAEdata_page_urls_monthly <- function(index_url) {
   con <- url(index_url, "r")
   html_lines <- readLines(con)
   
-  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-NHSBoard-Data.csv
-  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-NHSScotland-Data.csv
-  #http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/2018-08-28/2018-08-28-ED-Weekly-Statistics.xlsx?15:15:35
   #Close connection
   close(con)
 
@@ -237,9 +234,11 @@ clean_AE_data <- function(raw_data) {
     dplyr::mutate(Week_End = as.Date(Week_End)) %>%
     dplyr::mutate(Board_Code = as.character(Board_Code)) %>%
     dplyr::mutate(Board_Name = as.character(Board_Name)) %>%
-    dplyr::mutate(Prov_Name = as.character(Prov_Name))
-
+    dplyr::mutate(Prov_Name = as.character(Prov_Name)) %>%
+    dplyr::mutate(Prov_Name = ifelse(startsWith(Prov_Name, "NHS"), sub("NHS","Board:",Prov_Name), Prov_Name)) %>%
+    dplyr::mutate(Prov_Name = ifelse(endsWith(Board_Name, "Scotland"), "Whole of Scotland", Prov_Name))
   
+
   clean_data
 }
 
