@@ -1,17 +1,17 @@
 #' getAE_data
 #'
-#' @param update_data whether to download files afresh from NHS England website (TRUE)
+#' @param update_data whether to download files afresh from ISD Scotland website (TRUE)
 #' or use existing downloaded files (FALSE)
 #' @param directory directory to find existing downloaded files, and to save new downloads
 #' @param url_list list of urls (as strings) for the pages to scrape for data files
 #' @param use_filename_date if TRUE, take dates from the Excel file's name, if FALSE,
 #' take from the date specified inside the sheet
 #'
-#' @return A data frame containing all the monthly A&E data from the NHS England website.
+#' @return A data frame containing all the monthly A&E data from the ISD Scotland website.
 #' @export
 #'
 #' @examples
-#' AE_data <- getAE_data(directory = file.path('nhsAEscraper','sitreps'))
+#' AE_data <- getAE_data(directory = file.path('nhsAEscraperScotland','sitreps'))
 #' str(AE_data)
 getAE_data <- function(update_data = TRUE, directory = file.path('data-raw','sitreps'),
                        url_list = NULL, use_filename_date = FALSE) {
@@ -38,13 +38,13 @@ getAE_data <- function(update_data = TRUE, directory = file.path('data-raw','sit
   
 }
 
-###actually gives weekly data -> this wil be sorted out in the app itself 
+###actually gives weekly data. This wil be sorted out in the app itself 
 #' getAEdata_urls_monthly
 #'
 #' @param url_list list of urls (as strings) for the pages to scrape for data files
 #'
-#' @return the urls for NHS England A&E data *.xls files from pages in url_list
-#' yielding addresses for monthly data from June 2015 to (in principle) present.
+#' @return the urls for ISD Scotland A&E data *.csv files from pages in url_list
+#' yielding addresses for weekly data from June 2015 to (in principle) present.
 #' @export
 #'
 #' @examples
@@ -54,12 +54,13 @@ getAEdata_urls_monthly <- function(url_list = NULL) {
   
   if(is.null(url_list)) {
     
-    url_15_18 <- "http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id=2228#2228"
+    url_15_18 <- "http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"
     url_list <- list(url_15_18)
     
   }
   
-  #Scotish data : each csv file contains previous data already so only need most recent file 
+  #Scotish data : each csv file contains previous data already so only need most recent file
+  #but also downloads board and whole of Scotland data
   url_vect <- unlist(lapply(url_list,function(x) getAEdata_page_urls_monthly(x)))
   url_vect
 }
@@ -69,8 +70,8 @@ getAEdata_urls_monthly <- function(url_list = NULL) {
 #'
 #' @param index_url the url of the page to scrape data files from
 #'
-#' @return character vector of the urls for NHS England A&E data *.xls files
-#' from one of the monthly data index pages
+#' @return character vector of the urls for ISD Scotland A&E data *.csv files
+#' from one of the weekly data index pages
 #'
 #' @export
 #'
@@ -81,9 +82,9 @@ getAEdata_urls_monthly <- function(url_list = NULL) {
 #' head(urls, n = 3)
 getAEdata_page_urls_monthly <- function(index_url) {
   
-  #Get the html from the index website
+  #Get the html from the index website. n=3350 argument stops it from reading last line of webpage which has a error in it thus avoiding a warning message.
   con <- url(index_url, "r")
-  html_lines <- readLines(con)
+  html_lines <- readLines(con, n = 3350)
   
   #Close connection
   close(con)
@@ -146,11 +147,11 @@ download_AE_files <- function(file_urls, directory) {
 #' @param directory path of the directory to load files from
 #'
 #' @return a list of data frames containing data loaded from files in directory
-#' whose name is of the form '\*AE-by-provider\*.xls'
+#' whose name is of the form '\*-Data\*.csv'
 #' @export
 #'
 #' @examples
-#' dataList <- load_AE_files(directory = file.path('nhsAEscraper','sitreps'))
+#' dataList <- load_AE_files(directory = file.path('nhsAEscraperScotland','sitreps'))
 #'
 load_AE_files <- function(directory = file.path('data-raw','sitreps'), use_filename_date = TRUE) {
   
@@ -183,7 +184,7 @@ load_AE_files <- function(directory = file.path('data-raw','sitreps'), use_filen
 
 #' clean_AE_data
 #'
-#' @param raw_data dataframe containing a NHS England A&E Monthly report
+#' @param raw_data dataframe containing a ISD Scotland A&E weekly report
 #' with a standardised set of columns
 #'
 #' @return the same data as raw_data, as a rectangular table with header removed,
@@ -235,6 +236,7 @@ clean_AE_data <- function(raw_data) {
     dplyr::mutate(Board_Code = as.character(Board_Code)) %>%
     dplyr::mutate(Board_Name = as.character(Board_Name)) %>%
     dplyr::mutate(Prov_Name = as.character(Prov_Name)) %>%
+    dplyr::mutate(Prov_Code = as.character(Prov_Code)) %>%
     dplyr::mutate(Prov_Name = ifelse(startsWith(Prov_Name, "NHS"), sub("NHS","Board:",Prov_Name), Prov_Name)) %>%
     dplyr::mutate(Prov_Name = ifelse(endsWith(Board_Name, "Scotland"), "Whole of Scotland", Prov_Name))
   
@@ -307,18 +309,17 @@ get_date <- function(raw_data) {
   
 }
 
-###might not be necessary for Scotish data
 #' delete_extra_columns
 #'
 #' @param df a data frame containing A&E provider data
-#' for one month, from the NHS England website
+#' for one month, from the ISD Scotland website
 #'
 #' @return df with superfluous columns removed
 #'
 delete_extra_columns <- function(df) {
   #format_type_x <- nrow(df %>% dplyr::filter(grepl("A&E attendances less than 4 hours from arrival to admission",X__8))) == 1
   #if(!format_type_x) return(df)
-  df <- df %>% dplyr::select(-c(data_source))
+  df <- dplyr::select(df, -c(data_source))
   colnames(df) <- paste('X__',c(1:ncol(df)),sep='')
   df
 }
