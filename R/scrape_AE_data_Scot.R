@@ -100,10 +100,11 @@ getAEdata_page_urls_monthly <- function(index_url) {
   #starts <- regexpr("http",NHSS_csvdata_lines)
   #ends <- regexpr(".csv",NHSS_csvdata_lines) + 3
   urls_hosp <- substr(NHSS_csvdata_lines_hosp, regexpr("http",NHSS_csvdata_lines_hosp), regexpr(".csv",NHSS_csvdata_lines_hosp) + 3)
-  urls_board <- substr(NHSS_csvdata_lines_board, regexpr("http",NHSS_csvdata_lines_board), regexpr(".csv",NHSS_csvdata_lines_board) + 3)
-  urls_scot <- substr(NHSS_csvdata_lines_scot, regexpr("http",NHSS_csvdata_lines_scot), regexpr(".csv",NHSS_csvdata_lines_scot) + 3)
+  #urls_board <- substr(NHSS_csvdata_lines_board, regexpr("http",NHSS_csvdata_lines_board), regexpr(".csv",NHSS_csvdata_lines_board) + 3)
+  #urls_scot <- substr(NHSS_csvdata_lines_scot, regexpr("http",NHSS_csvdata_lines_scot), regexpr(".csv",NHSS_csvdata_lines_scot) + 3)
 
-  urls <- c(urls_hosp[1], urls_board[1], urls_scot[1])
+  #urls <- c(urls_hosp[1], urls_board[1], urls_scot[1])
+  urls <- urls_hosp[1]
   
   #Return urls
   return(urls)
